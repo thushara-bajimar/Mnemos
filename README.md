@@ -141,7 +141,6 @@ docs/               PDFs, screenshots, charts, measured results
 | [API_DOCUMENTATION.md](API_DOCUMENTATION.md) | Every REST endpoint, with examples. |
 | [TESTING_AND_EVALUATION.md](TESTING_AND_EVALUATION.md) | Tests, benchmark method, results and caveats. |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development workflow. |
-| [PRESENTATION_CONTENT.md](PRESENTATION_CONTENT.md) | Slide-by-slide presentation content. |
 
 ## Limitations (summary)
 

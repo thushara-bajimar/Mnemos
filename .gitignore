@@ -3,6 +3,8 @@
 # These files stay on the local machine only.
 # ---------------------------------------------------------------
 private-notes/
+PRESENTATION_CONTENT.md
+PRESENTATION_GENERATION_PROMPT.md
 
 # ---------------------------------------------------------------
 # Secrets & environment
