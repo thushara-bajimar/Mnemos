@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { -webkit-font-smoothing: antialiased; }
+body { background: #f6f7f9; }
+pre { white-space: pre-wrap; word-break: break-word; }
+.table-auto th { @apply px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-500; }
+.table-auto td { @apply px-2 py-1.5 align-top; }
