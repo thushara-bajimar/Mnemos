@@ -276,6 +276,16 @@ class BoltAgent:
                 "tool_calls": self.transcript}
 
 
+def _redact_deep(obj, redact):
+    if isinstance(obj, str):
+        return redact(obj)
+    if isinstance(obj, dict):
+        return {k: _redact_deep(v, redact) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_redact_deep(v, redact) for v in obj]
+    return obj
+
+
 def _sentences(text: str) -> list[str]:
     parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+|\n+", text) if p.strip()]
     return parts or [text.strip()]
@@ -310,9 +320,13 @@ class AgentService:
         return rows
 
     def log(self, agent_id: str, task_id: str | None, kind: str, message: str, data: dict | None = None) -> None:
+        # logs pass through the same safety layer as memories: secrets/PII are never written verbatim
+        from ..core.safety import redact
+
         self.db.execute(
             "INSERT INTO agent_log (id, agent_id, task_id, kind, message, data, created_at) VALUES (?,?,?,?,?,?,?)",
-            (new_id("log"), agent_id, task_id, kind, message[:1000], json.dumps(data or {}, default=str)[:20000], now_iso()))
+            (new_id("log"), agent_id, task_id, kind, redact(message[:1000]),
+             json.dumps(_redact_deep(data or {}, redact), default=str)[:20000], now_iso()))
 
     def get_log(self, agent_id: str | None = None, task_id: str | None = None, limit: int = 100) -> list[dict]:
         where, p = [], []

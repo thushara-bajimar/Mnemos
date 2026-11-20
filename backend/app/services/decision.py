@@ -188,7 +188,14 @@ class DecisionEngine:
             m = top[0]
             same_fact = not (cls.subject and m.get("subject") == cls.subject and m.get("attribute") == cls.attribute
                              and normalize(m.get("value") or "") != normalize(cls.value or ""))
-            if same_fact:
+            # templated sentences about different entities ("release Project A" vs "release Project B")
+            # are similar in embedding space but are NOT duplicates
+            new_ents = {x.lower() for x in cls.entities}
+            old_ents = {x.lower() for x in (m.get("entities") or [])}
+            same_entities = new_ents <= old_ents or normalize(m["content"]) == normalize(rep.redacted_text)
+            if not same_entities:
+                reasons.append(f"similar to {m['id']} ({top[1]:.2f}) but about different entities → not a duplicate")
+            if same_fact and same_entities:
                 reasons.append(f"near-duplicate of {m['id']} (similarity {top[1]:.2f} ≥ {s.duplicate_threshold}) → reinforce instead of duplicating")
                 return result("MERGE", target_memory_id=m["id"])
 

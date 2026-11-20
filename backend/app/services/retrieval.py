@@ -28,6 +28,23 @@ from ..core.text import WORD_TO_CONCEPT, content_terms, parse_iso
 QUESTION_WORDS = {"what", "who", "where", "when", "which", "how", "why", "doe", "doing", "tell", "know", "current",
                   "currently", "is", "use", "using"}
 MIN_COVERAGE = 0.5
+
+# Query-intent priors: the form of a question tells us which memory type is most useful.
+import re as _re
+
+INTENT_PRIORS = [
+    (_re.compile(r"\bhow (do|can|should|to)\b|\bsteps?\b|\bprocedure\b|\brunbook\b|\bprocess for\b", _re.I), "procedural", 1.35),
+    (_re.compile(r"\b(prefer|preference|like|likes|favou?rite)\b", _re.I), "preference", 1.25),
+    (_re.compile(r"\b(what happened|when did|last (week|time|sprint)|yesterday|decided)\b", _re.I), "episodic", 1.25),
+    (_re.compile(r"\b(reports? to|manager|manages|works with|depends on|member of)\b", _re.I), "relational", 1.25),
+]
+
+
+def intent_of(query: str) -> tuple[str | None, float]:
+    for pat, mtype, boost in INTENT_PRIORS:
+        if pat.search(query):
+            return mtype, boost
+    return None, 1.0
 from ..core.tokenizer import count_tokens, info as tok_info, truncate_to_tokens
 
 STATUS_FACTOR = {
@@ -86,6 +103,7 @@ class Retriever:
             put("graph", self.e.graph.memories_for_entities(ents + [t for t in terms if len(t) > 3], hops=1))
 
         now = datetime.now(timezone.utc)
+        intent_type, intent_boost = intent_of(query)
         results = []
         for mid, c in comps.items():
             m = self.e.structured.get(mid)
@@ -114,6 +132,8 @@ class Retriever:
             f_imp = 0.85 + 0.15 * float(m["importance"])
             f_status = STATUS_FACTOR.get(m["status"], 0.0)
             boost = 1.2 if task_id and m.get("task_id") == task_id else 1.0
+            if intent_type and m["memory_type"] == intent_type:
+                boost *= intent_boost
             score = base * f_conf * f_imp * recency * (f_status if not include_inactive else max(f_status, 0.3)) * boost
             results.append({
                 "id": mid, "content": m["content"], "memory_type": m["memory_type"], "status": m["status"],
@@ -151,7 +171,7 @@ class Retriever:
         if r["status"] != "active":
             s += f"; status {r['status']} (×{r['factors']['status']})"
         if r["factors"]["task_boost"] > 1:
-            s += "; task-relevant boost"
+            s += f"; boost ×{r['factors']['task_boost']:.2f} (task/intent match)"
         return s
 
     # ------------------------------------------------------------ ask

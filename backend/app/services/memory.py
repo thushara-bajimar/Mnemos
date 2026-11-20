@@ -289,11 +289,15 @@ class MemoryService:
                 hashes = self.e.forgetting.term_hashes(r["content"])
                 self._unindex(r["id"])
                 # purge content but keep a minimal stub so retrieval can say "expired"
-                self.structured.update(r["id"], status="expired", content="[expired]", value=None, valid_to=now.isoformat(timespec="seconds"))
+                # every field derived from the content is cleared, not only the text itself
+                self.structured.update(r["id"], status="expired", content="[expired]", value=None, subject=None,
+                                       attribute=None, entities=[], tags=[], file_path=None,
+                                       valid_to=now.isoformat(timespec="seconds"))
                 self.db.execute("DELETE FROM revisions WHERE memory_id=?", (r["id"],))
                 self.db.execute("UPDATE decisions SET preview=NULL WHERE memory_id=?", (r["id"],))
                 self.e.forgetting.audit("expiry", 1, ["structured", "keyword", "vector", "graph", "file"], True, hashes, "system")
         if expired:
+            self.e.forgetting.compact()
             self.e.invalidate_cache()
         return {"expired": expired, "count": len(expired)}
 

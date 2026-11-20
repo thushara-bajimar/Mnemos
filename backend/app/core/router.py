@@ -25,7 +25,7 @@ def route(cls: Classification, content: str, temporary: bool) -> tuple[list[str]
         reasons.append("vector: durable memory → indexed for semantic retrieval and dedup")
     else:
         reasons.append("vector skipped: temporary/working memory would pollute the long-term semantic index")
-    if cls.relation or (cls.entities and cls.memory_type in ("relational", "episodic", "semantic")):
+    if cls.relation or (cls.entities and not temporary):
         routes.append("graph")
         reasons.append(
             "graph: " + ("explicit relationship " + " → ".join(cls.relation) if cls.relation else f"entities {cls.entities[:4]}")
